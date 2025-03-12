@@ -43,16 +43,6 @@ int main(){
         for(int i=0;i<loop;i++){
             scanf("%d",&arr[i]);
         }
-        // //排序並且取得中位數
-        // for(int i = 0;i<loop;i++){
-        //     for(int j=0;j<loop-1;j++){
-        //         if(arr[j]>arr[j+1]){
-        //             int temp = arr[j];
-        //             arr[j] = arr[j+1];
-        //             arr[j+1] = temp;
-        //         }
-        //     }
-        // }
         QSORT(arr,0,loop-1);
         //計算有多少數字和中位數差值最小
         int count1 = 0;
