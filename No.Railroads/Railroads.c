@@ -2,131 +2,113 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_CITIES 100
-#define MAX_TRAINS 1000
-#define MAX_STOPS 100
-#define INF 999999
+#define MAX_CITIES 105
+#define MAX_TRAIN 1000
+#define MAX_TIME 2400
+#define INF -1
 
 typedef struct {
-    int time;
-    char city[21];
-} Stop;
+    int to;
+    short startTime, endTime;
+} Edge;
 
-typedef struct {
-    int num_stops;
-    Stop stops[MAX_STOPS];
-} Train;
+Edge graph[MAX_CITIES][MAX_TRAIN];
+int edgeCount[MAX_CITIES];  // 記錄每個城市的火車數量
+short dist[MAX_TIME][MAX_CITIES]; // DP 陣列
+char cityNames[MAX_CITIES][32];   // 存放城市名稱
 
-typedef struct {
-    char name[21];
-    int earliest_arrival;
-    int latest_departure;
-    int departure_time;
-} City;
-
-City cities[MAX_CITIES];
-Train trains[MAX_TRAINS];
-int num_cities, num_trains;
-
-int find_city_index(char *name) {
-    for (int i = 0; i < num_cities; i++) {
-        if (strcmp(cities[i].name, name) == 0) {
-            return i;
-        }
+int get_city_index(char *name, int city_count) {
+    for (int i = 0; i < city_count; i++) {
+        if (strcmp(cityNames[i], name) == 0) return i;
     }
     return -1;
 }
 
-void dijkstra(int start_index, int start_time) {
-    int dist[MAX_CITIES];
-    int visited[MAX_CITIES] = {0};
-    //初始化
-    for (int i = 0; i < num_cities; i++) {
-        dist[i] = INF;
-        cities[i].departure_time = INF;
-    }
-    dist[start_index] = start_time;
+void solve(char *name1, char *name2, int st, int ed, int st_time, int n) {
+    int i, j, k;
+    memset(dist, INF, sizeof(dist));
 
-    //找最短路徑
-    for (int i = 0; i < num_cities; i++) {
-        int min_dist = INF, u = -1;
-        //找最小距離
-        for (int j = 0; j < num_cities; j++) {
-            if (!visited[j] && dist[j] < min_dist) {//沒有被訪問過且距離小於最小距離
-                min_dist = dist[j];
-                u = j;
+    // 初始點火車設定
+    for (i = 0; i < edgeCount[st]; i++) {
+        if (graph[st][i].startTime >= st_time) {
+            int endT = graph[st][i].endTime;
+            int to = graph[st][i].to;
+            if (dist[endT][to] < graph[st][i].startTime) {
+                dist[endT][to] = graph[st][i].startTime;
             }
         }
-        if (u == -1) break;
-        visited[u] = 1;
+    }
 
-        //更新最短路徑
-        for (int t = 0; t < num_trains; t++) {
-            //找到火車停靠站
-            for (int s = 0; s < trains[t].num_stops - 1; s++) {
-                int u_index = find_city_index(trains[t].stops[s].city);
-                int v_index = find_city_index(trains[t].stops[s + 1].city);
-                //如果是同一個城市且時間小於等於火車停靠時間且時間大於等於開始時間
-                if (u_index == u && dist[u] <= trains[t].stops[s].time && trains[t].stops[s].time >= start_time) {
-                    int arrival_time = trains[t].stops[s + 1].time;
-                    if (arrival_time < dist[v_index] || (arrival_time == dist[v_index] && trains[t].stops[s].time > cities[v_index].departure_time)) {
-                        dist[v_index] = arrival_time;
-                        cities[v_index].latest_departure = trains[t].stops[s].time;
-                        cities[v_index].departure_time = trains[t].stops[s].time;
-                    }
+    // 動態規劃 (DP) 方式計算最早抵達終點時間
+    for (i = st_time; i < MAX_TIME; i++) {
+        for (j = 0; j < n; j++) {
+            if (dist[i][j] == INF) continue;
+
+            for (k = 0; k < edgeCount[j]; k++) {
+                int startT = graph[j][k].startTime;
+                int endT = graph[j][k].endTime;
+                int to = graph[j][k].to;
+
+                if (startT >= i && dist[endT][to] < dist[i][j]) {
+                    dist[endT][to] = dist[i][j];
                 }
             }
         }
+
+        if (dist[i][ed] != INF) {
+            printf("Departure %04d %s\n", dist[i][ed], name1);
+            printf("Arrival   %04d %s\n", i, name2);
+            return;
+        }
     }
 
-    for (int i = 0; i < num_cities; i++) {
-        cities[i].earliest_arrival = dist[i];
-    }
+    puts("No connection");
 }
 
 int main() {
-    int scenarios;
-    scanf("%d", &scenarios);
+    int testcase, cases = 0;
+    int N, T, M;
+    int i, j, k;
 
-    for (int scenario = 1; scenario <= scenarios; scenario++) {
-        scanf("%d", &num_cities);
-        //輸入城市名稱
-        for (int i = 0; i < num_cities; i++) {
-            scanf("%s", cities[i].name);
-            cities[i].earliest_arrival = INF;
-            cities[i].latest_departure = -1;
-            cities[i].departure_time = INF;
+    scanf("%d", &testcase);
+    while (testcase--) {
+        scanf("%d", &N);
+        
+        for (i = 0; i < N; i++) {
+            scanf("%s", cityNames[i]);
+            edgeCount[i] = 0;
         }
 
-        scanf("%d", &num_trains);
-        //輸入火車的停靠站
-        for (int i = 0; i < num_trains; i++) {
-            scanf("%d", &trains[i].num_stops);
-            //輸入火車的停靠站時間和城市
-            for (int j = 0; j < trains[i].num_stops; j++) {
-                scanf("%d %s", &trains[i].stops[j].time, trains[i].stops[j].city);
+        // 讀取火車時刻表
+        scanf("%d", &T);
+        int x, y, ptime, time, startTime;
+        char cityName[32];
+        
+        while (T--) {
+            scanf("%d", &M);
+            for (i = 0; i < M; i++) {
+                scanf("%d %s", &time, cityName);
+                y = get_city_index(cityName, N);
+                if (i > 0 && time >= ptime) {
+                    graph[x][edgeCount[x]].to = y;
+                    graph[x][edgeCount[x]].startTime = ptime;
+                    graph[x][edgeCount[x]].endTime = time;
+                    edgeCount[x]++;
+                }
+                x = y;
+                ptime = time;
             }
         }
 
-        int start_time;
-        char start_city[21], end_city[21];
-        scanf("%d", &start_time);
-        scanf("%s", start_city);
-        scanf("%s", end_city);
+        char start[32], end[32];
+        scanf("%d %s %s", &startTime, start, end);
 
-        int start_index = find_city_index(start_city);
-        int end_index = find_city_index(end_city);
+        x = get_city_index(start, N);
+        y = get_city_index(end, N);
 
-        dijkstra(start_index, start_time);
-
-        printf("Scenario %d\n", scenario);
-        if (cities[end_index].earliest_arrival == INF) {
-            printf("No connection\n");
-        } else {
-            printf("Departure %04d %s\n", cities[end_index].latest_departure, start_city);
-            printf("Arrival   %04d %s\n", cities[end_index].earliest_arrival, end_city);
-        }
-        printf("\n");
+        printf("Scenario %d\n", ++cases);
+        solve(start, end, x, y, startTime, N);
+        puts("");
     }
 
     return 0;
