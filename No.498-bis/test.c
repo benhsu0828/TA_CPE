@@ -1,28 +1,29 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
-#include<math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+long long int solve(int x, int *arr, int n){
+    long long int total=0; 
+    for(int i=0; i<n-1; i++){
+        total = total * x + arr[i] * (n - i - 1);
+    }
+    return total;
+}
 
 int main(){
-	
-	int x;
-	while(scanf("%d", &x) != EOF){
-		getchar();
-		char exp[100];
-		fgets(exp, 100, stdin);
-		exp[strcspn(exp, "\n")] = '\0';
-		char *token = strtok(exp, " ");
-		int count = 0;
-		int intexp[100];
-		while(token != NULL){
-			intexp[count++] = strtol(token, NULL, 10);
-			token = strtok(NULL, " ");
-		}
-		int sum = 0, e = 1;
-		for(int i = count-2; i>=0; i--){
-			sum = sum + e*pow(x, e-1);
-			e++;
-		}
-		printf("%d\n", sum);
-	}
+    int x, coe[1000000];
+    while(scanf("%d", &x) != EOF){
+        char line[1000000];
+        getchar();
+        fgets(line, sizeof(line), stdin);
+        line[strcspn(line, "\n")] = 0; 
+        int count=0;
+        char *token = strtok(line, " ");
+        while(token != NULL){
+            coe[count++] = atoi(token);
+            token = strtok(NULL, " ");
+        }
+        printf("%lld\n", solve(x, coe, count));
+    }
+    return 0;
 }
